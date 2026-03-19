@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zap — Minimal macOS Window Switcher</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --border: #1e1e2e;
+            --text: #e4e4ef;
+            --muted: #8888a0;
+            --accent: #6c5ce7;
+            --accent2: #1a35cc;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .glow {
+            position: fixed;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(108,92,231,0.15) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Hero */
+        .hero {
+            text-align: center;
+            padding: 100px 0 60px;
+        }
+
+        .hero img {
+            width: 120px;
+            height: 120px;
+            border-radius: 26px;
+            margin-bottom: 32px;
+            box-shadow: 0 20px 60px rgba(108,92,231,0.3);
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 12px;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, #6c5ce7, #4a8aff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--muted);
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        /* Stats */
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            margin: 20px 0 60px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            background: linear-gradient(135deg, #6c5ce7, #4a8aff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-top: 4px;
+        }
+
+        /* Features */
+        .features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 60px;
+        }
+
+        .feature {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .feature h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .feature p {
+            font-size: 0.85rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        /* Install */
+        .install {
+            margin-bottom: 60px;
+        }
+
+        .install h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .install-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .code-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.9rem;
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .code-block .label {
+            font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .code-block code {
+            color: #c4b5fd;
+        }
+
+        .code-block .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--border);
+            border: none;
+            color: var(--muted);
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .code-block .copy-btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* Download button */
+        .download {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 36px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(108,92,231,0.4);
+        }
+
+        .btn-sub {
+            display: block;
+            margin-top: 12px;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        footer a {
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: #c4b5fd;
+        }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            .hero { padding: 60px 0 40px; }
+            .hero h1 { font-size: 2rem; }
+            .hero p { font-size: 1rem; }
+            .stats { gap: 24px; }
+            .stat-value { font-size: 1.25rem; }
+            .features { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="glow"></div>
+
+    <div class="container">
+        <section class="hero">
+            <img src="icon.png" alt="Zap icon">
+            <h1><span>Zap</span></h1>
+            <p>Minimal macOS window switcher. Native Swift, no bloat. Just fast.</p>
+        </section>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value">264 KB</div>
+                <div class="stat-label">App Size</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">28 MB</div>
+                <div class="stat-label">RAM Idle</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">0%</div>
+                <div class="stat-label">CPU Idle</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">536</div>
+                <div class="stat-label">Lines of Code</div>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">&#9889;</div>
+                <h3>Instant Switching</h3>
+                <p>Global hotkey triggers a floating overlay. Release to focus. No lag.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">&#127912;</div>
+                <h3>Window Thumbnails</h3>
+                <p>Live previews loaded async with caching for instant reopens.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">&#9881;&#65039;</div>
+                <h3>Configurable</h3>
+                <p>Pick your modifier, trigger key, and panel size from the menu bar.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">&#129299;</div>
+                <h3>Zero Dependencies</h3>
+                <p>Pure Swift. System frameworks only. No Electron, no runtime.</p>
+            </div>
+        </div>
+
+        <section class="install">
+            <h2>Install</h2>
+            <div class="install-options">
+                <div class="code-block">
+                    <div class="label">Homebrew</div>
+                    <code>brew tap jochern/tap && brew install --cask zap</code>
+                    <button class="copy-btn" onclick="copy(this, 'brew tap jochern/tap && brew install --cask zap')">Copy</button>
+                </div>
+                <div class="code-block">
+                    <div class="label">Build from source</div>
+                    <code>git clone https://github.com/Jochern/zap && cd zap && make install</code>
+                    <button class="copy-btn" onclick="copy(this, 'git clone https://github.com/Jochern/zap && cd zap && make install')">Copy</button>
+                </div>
+            </div>
+        </section>
+
+        <div class="download">
+            <a href="https://github.com/Jochern/zap/releases/latest" class="btn">Download DMG</a>
+            <span class="btn-sub">macOS 13+ &middot; Apple Silicon</span>
+        </div>
+
+        <footer>
+            <a href="https://github.com/Jochern/zap">GitHub</a> &nbsp;&middot;&nbsp;
+            <a href="https://github.com/Jochern/zap/releases">Releases</a>
+        </footer>
+    </div>
+
+    <script>
+        function copy(btn, text) {
+            navigator.clipboard.writeText(text);
+            btn.textContent = 'Copied';
+            setTimeout(() => btn.textContent = 'Copy', 1500);
+        }
+    </script>
+</body>
+</html>
