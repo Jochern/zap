@@ -13,11 +13,22 @@ bundle: build
 	mkdir -p $(APP_BUNDLE)/Contents/Resources
 	cp $(BUILD_DIR)/$(APP_NAME) $(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)
 	cp Info.plist $(APP_BUNDLE)/Contents/Info.plist
+	cp Resources/AppIcon.icns $(APP_BUNDLE)/Contents/Resources/AppIcon.icns
 	@echo "$(APP_BUNDLE) created"
 
 dmg: bundle
 	rm -f $(BUILD_DIR)/$(APP_NAME).dmg
-	hdiutil create -volname $(APP_NAME) -srcfolder $(APP_BUNDLE) -ov -format UDZO $(BUILD_DIR)/$(APP_NAME).dmg
+	create-dmg \
+		--volname "$(APP_NAME)" \
+		--volicon "Resources/AppIcon.icns" \
+		--window-pos 200 120 \
+		--window-size 600 400 \
+		--icon-size 100 \
+		--icon "$(APP_NAME).app" 175 190 \
+		--app-drop-link 425 190 \
+		--hide-extension "$(APP_NAME).app" \
+		$(BUILD_DIR)/$(APP_NAME).dmg \
+		$(APP_BUNDLE)
 	@echo "$(BUILD_DIR)/$(APP_NAME).dmg created"
 
 install: bundle

@@ -72,6 +72,11 @@ class ZapAppDelegate: NSObject, NSApplicationDelegate {
         if !trusted {
             print("Accessibility permission required. A system prompt should appear.")
         }
+
+        if !CGPreflightScreenCaptureAccess() {
+            CGRequestScreenCaptureAccess()
+            print("Screen Recording permission required for window thumbnails.")
+        }
     }
 
     private func setupMenuBar() {
