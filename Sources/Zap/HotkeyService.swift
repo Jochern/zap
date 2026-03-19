@@ -5,6 +5,7 @@ class HotkeyService {
 
     private var eventTap: CFMachPort?
     var onAltTab: (() -> Void)?
+    var onAltShiftTab: (() -> Void)?
     var onAltRelease: (() -> Void)?
 
     func start() {
@@ -52,22 +53,26 @@ private func hotkeyCallback(
         return Unmanaged.passUnretained(event)
     }
 
-    // Re-enable if the system disabled the tap due to timeout
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
         service.reenable()
         return Unmanaged.passUnretained(event)
     }
 
+    let settings = ZapSettings.shared
+
     if type == .keyDown {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
-        // Tab = keyCode 48, Alt/Option flag
-        if keyCode == 48 && flags.contains(.maskAlternate) {
-            service.onAltTab?()
-            return nil // Consume the event
+        if keyCode == settings.triggerKey.keyCode && flags.contains(settings.modifier.mask) {
+            if flags.contains(.maskShift) {
+                service.onAltShiftTab?()
+            } else {
+                service.onAltTab?()
+            }
+            return nil
         }
     } else if type == .flagsChanged {
-        if !event.flags.contains(.maskAlternate) {
+        if !event.flags.contains(settings.modifier.mask) {
             service.onAltRelease?()
         }
     }
