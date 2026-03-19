@@ -143,6 +143,105 @@
             line-height: 1.5;
         }
 
+        /* Comparison */
+        .comparison {
+            margin-bottom: 60px;
+        }
+
+        .comparison h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .comparison table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .comparison th, .comparison td {
+            padding: 14px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comparison th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        .comparison tr:last-child td { border-bottom: none; }
+
+        .comparison td:first-child { color: var(--muted); font-size: 0.9rem; }
+
+        .comparison .zap-val {
+            font-weight: 600;
+            background: linear-gradient(135deg, #6c5ce7, #4a8aff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .comparison .alt-val { color: var(--muted); }
+
+        /* Comparison */
+        .comparison {
+            margin-bottom: 60px;
+        }
+
+        .comparison h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .comparison table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .comparison th, .comparison td {
+            padding: 14px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comparison th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        .comparison td:first-child {
+            text-align: left;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .comparison tr:last-child td { border-bottom: none; }
+
+        .comparison .zap-val {
+            font-weight: 600;
+            background: linear-gradient(135deg, #6c5ce7, #4a8aff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .comparison .alt-val { color: var(--muted); }
+
         /* Install */
         .install {
             margin-bottom: 60px;
@@ -314,6 +413,18 @@
                 <p>Pure Swift. System frameworks only. No Electron, no runtime.</p>
             </div>
         </div>
+
+        <section class="comparison">
+            <h2>Zap vs AltTab</h2>
+            <table>
+                <tr><th></th><th>Zap</th><th>AltTab</th></tr>
+                <tr><td>RAM (idle)</td><td class="zap-val">28 MB</td><td class="alt-val">89 MB</td></tr>
+                <tr><td>App size</td><td class="zap-val">264 KB</td><td class="alt-val">~15 MB</td></tr>
+                <tr><td>CPU (idle)</td><td class="zap-val">0%</td><td class="alt-val">0%</td></tr>
+                <tr><td>Lines of code</td><td class="zap-val">536</td><td class="alt-val">50k+</td></tr>
+                <tr><td>Dependencies</td><td class="zap-val">None</td><td class="alt-val">Multiple</td></tr>
+            </table>
+        </section>
 
         <section class="install">
             <h2>Install</h2>
