@@ -7,10 +7,10 @@ struct ZapWindow {
     let windowID: CGWindowID
     let pid: pid_t
     let icon: NSImage?
-    var thumbnail: NSImage?
+    let thumbnail: NSImage?
 }
 
-func fetchWindows(iconCache: inout [pid_t: NSImage]) -> [ZapWindow] {
+func fetchWindows() -> [ZapWindow] {
     guard let list = CGWindowListCopyWindowInfo(
         [.optionOnScreenOnly, .excludeDesktopElements],
         kCGNullWindowID
@@ -24,34 +24,17 @@ func fetchWindows(iconCache: inout [pid_t: NSImage]) -> [ZapWindow] {
 
         let title = info[kCGWindowName as String] as? String ?? "(untitled)"
         let windowID = info[kCGWindowNumber as String] as? CGWindowID ?? 0
-        let icon: NSImage? = iconCache[pid] ?? {
-            let img = NSRunningApplication(processIdentifier: pid)?.icon
-            if let img { iconCache[pid] = img }
-            return img
-        }()
+        let icon = NSRunningApplication(processIdentifier: pid)?.icon
 
         return ZapWindow(appName: appName, title: title, windowID: windowID, pid: pid, icon: icon, thumbnail: nil)
     }
 }
 
-func captureThumbnail(for window: ZapWindow, maxWidth: CGFloat = 296) -> NSImage? {
+func captureThumbnail(for window: ZapWindow) -> NSImage? {
     guard let cgImage = CGWindowListCreateImage(
-        .null, .optionIncludingWindow, window.windowID, [.boundsIgnoreFraming]
+        .null, .optionIncludingWindow, window.windowID, [.boundsIgnoreFraming, .bestResolution]
     ) else { return nil }
-    let origW = CGFloat(cgImage.width)
-    let origH = CGFloat(cgImage.height)
-    guard origW > 0, origH > 0 else { return nil }
-    let scale = min(1, maxWidth / origW)
-    let newW = origW * scale
-    let newH = origH * scale
-    let img = NSImage(size: NSSize(width: newW, height: newH))
-    img.lockFocus()
-    NSGraphicsContext.current?.imageInterpolation = .high
-    NSRect(x: 0, y: 0, width: newW, height: newH).fill(using: .clear)
-    NSImage(cgImage: cgImage, size: NSSize(width: origW, height: origH))
-        .draw(in: NSRect(x: 0, y: 0, width: newW, height: newH))
-    img.unlockFocus()
-    return img
+    return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
 }
 
 // MARK: - App Delegate
@@ -63,7 +46,6 @@ class ZapAppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: NSWindow?
     private var statusItem: NSStatusItem?
     private var thumbnailCache: [CGWindowID: NSImage] = [:]
-    private var iconCache: [pid_t: NSImage] = [:]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         checkAccessibility()
@@ -237,14 +219,15 @@ class ZapAppDelegate: NSObject, NSApplicationDelegate {
 
     private func cycle(forward: Bool) {
         if switcherState.windows.isEmpty {
-            var windows = fetchWindows(iconCache: &iconCache)
-            // Evict stale cache entries for windows that no longer exist
-            let activeIDs = Set(windows.map(\.windowID))
-            thumbnailCache = thumbnailCache.filter { activeIDs.contains($0.key) }
+            var windows = fetchWindows()
             // Apply cached thumbnails so the panel opens with content immediately
             for i in windows.indices {
                 if let cached = thumbnailCache[windows[i].windowID] {
-                    windows[i].thumbnail = cached
+                    windows[i] = ZapWindow(
+                        appName: windows[i].appName, title: windows[i].title,
+                        windowID: windows[i].windowID, pid: windows[i].pid,
+                        icon: windows[i].icon, thumbnail: cached
+                    )
                 }
             }
             switcherState.windows = windows
@@ -272,7 +255,11 @@ class ZapAppDelegate: NSObject, NSApplicationDelegate {
                     if let thumb {
                         self.thumbnailCache[window.windowID] = thumb
                     }
-                    self.switcherState.windows[i].thumbnail = thumb
+                    self.switcherState.windows[i] = ZapWindow(
+                        appName: window.appName, title: window.title,
+                        windowID: window.windowID, pid: window.pid,
+                        icon: window.icon, thumbnail: thumb
+                    )
                 }
             }
         }
