@@ -440,6 +440,11 @@
         <div class="download">
             <a href="https://github.com/Jochern/zap/releases/latest" class="btn">Download DMG</a>
             <span class="btn-sub">macOS 13+ &middot; Apple Silicon</span>
+            <div class="code-block" style="max-width: 520px; margin: 20px auto 0; text-align: left;">
+                <div class="label">macOS may block the app — run this after installing</div>
+                <code>xattr -cr /Applications/Zap.app</code>
+                <button class="copy-btn" onclick="copy(this, 'xattr -cr /Applications/Zap.app')">Copy</button>
+            </div>
         </div>
 
         <footer>
