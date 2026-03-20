@@ -2,7 +2,7 @@ import Cocoa
 
 func focusWindow(_ window: ZapWindow) {
     guard let app = NSRunningApplication(processIdentifier: window.pid) else { return }
-    app.activate(options: .activateIgnoringOtherApps)
+    activateRunningApp(app)
 
     let axApp = AXUIElementCreateApplication(window.pid)
     var windowsRef: CFTypeRef?

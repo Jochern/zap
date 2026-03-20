@@ -61,7 +61,28 @@ class ZapAppDelegate: NSObject, NSApplicationDelegate {
         hotkeyService.onAltRelease = { [weak self] in
             DispatchQueue.main.async { self?.selectCurrent() }
         }
+        hotkeyService.onStarted = { [weak self] in
+            DispatchQueue.main.async { self?.updateMenuBarIcon(active: true) }
+        }
+        hotkeyService.onFailed = { [weak self] in
+            DispatchQueue.main.async {
+                self?.updateMenuBarIcon(active: false)
+                self?.showPermissionAlert()
+            }
+        }
+        hotkeyService.onInputMonitoringNeeded = { [weak self] in
+            DispatchQueue.main.async {
+                self?.updateMenuBarIcon(active: false)
+                self?.showInputMonitoringAlert()
+            }
+        }
         hotkeyService.start()
+
+        let settings = ZapSettings.shared
+        if settings.hasSystemConflict {
+            print("Note: \(settings.conflictDescription ?? "System shortcut conflict detected.")")
+        }
+
         print("Zap running. \(ZapSettings.shared.modifier.label)+\(ZapSettings.shared.triggerKey.label) to switch windows.")
     }
 
@@ -73,9 +94,60 @@ class ZapAppDelegate: NSObject, NSApplicationDelegate {
             print("Accessibility permission required. A system prompt should appear.")
         }
 
+        // On macOS 14+, Input Monitoring is separate from Accessibility.
+        // IOHIDRequestAccess triggers the system prompt for Input Monitoring.
+        if #available(macOS 14.0, *) {
+            let hasInputMonitoring = IOHIDRequestAccess(kIOHIDRequestTypeListenEvent)
+            if !hasInputMonitoring {
+                print("Input Monitoring permission required for keyboard events.")
+            }
+        }
+
         if !CGPreflightScreenCaptureAccess() {
             CGRequestScreenCaptureAccess()
             print("Screen Recording permission required for window thumbnails.")
+        }
+    }
+
+    private func showPermissionAlert() {
+        let alert = NSAlert()
+        alert.messageText = "Zap Needs Permissions"
+        alert.informativeText = "Zap requires these permissions to work:\n\n• Accessibility – to intercept keyboard shortcuts\n• Input Monitoring – to receive key events (macOS 14+)\n\nGo to System Settings → Privacy & Security and enable Zap under both Accessibility and Input Monitoring.\n\nZap will activate automatically once permissions are granted."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Later")
+
+        activateApp()
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+    }
+
+    private func showInputMonitoringAlert() {
+        let alert = NSAlert()
+        alert.messageText = "Zap Needs Input Monitoring"
+        alert.informativeText = "Zap can detect modifier keys but not keyboard shortcuts.\n\nThis usually means Input Monitoring permission is missing.\n\nGo to System Settings → Privacy & Security → Input Monitoring and enable Zap (or your terminal if running from terminal)."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Later")
+
+        activateApp()
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+    }
+
+    private func updateMenuBarIcon(active: Bool) {
+        if let button = statusItem?.button {
+            let symbolName = active ? "bolt.fill" : "bolt.trianglebadge.exclamationmark"
+            button.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Zap")
+            button.toolTip = active ? "Zap – Window Switcher" : "Zap – Accessibility permission required"
         }
     }
 
@@ -108,24 +180,29 @@ class ZapAppDelegate: NSObject, NSApplicationDelegate {
             self.settingsWindow = window
         }
         settingsWindow?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        activateApp()
     }
 
     private func setupPanel() {
         let panel = SwitcherPanel()
-        let maxWidth = (NSScreen.main?.frame.width ?? 1200) * 0.8
+        let maxWidth = (NSScreen.screens.first?.frame.width ?? 1200) * 0.8
         let hostingView = NSHostingView(rootView: SwitcherView(state: switcherState, maxWidth: maxWidth))
         panel.contentView = hostingView
         self.panel = panel
     }
 
     private func showPanel() {
-        guard let panel = panel, let screen = NSScreen.main else { return }
+        let mouseScreen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) }
+        guard let panel = panel, let screen = mouseScreen ?? NSScreen.main,
+              let contentView = panel.contentView else { return }
 
+        // Position offscreen first so SwiftUI can lay out the new content
+        panel.setFrameOrigin(NSPoint(x: -10000, y: -10000))
         panel.orderFrontRegardless()
 
+        // After SwiftUI has laid out, reposition to center of screen
         DispatchQueue.main.async {
-            guard let contentView = panel.contentView else { return }
+            contentView.layoutSubtreeIfNeeded()
             let contentSize = contentView.fittingSize
             let screenFrame = screen.frame
             let origin = CGPoint(
@@ -155,6 +232,7 @@ class ZapAppDelegate: NSObject, NSApplicationDelegate {
             }
             switcherState.windows = windows
             switcherState.selectedIndex = windows.count > 1 ? 1 : 0
+            switcherState.hoverEnabled = false
             showPanel()
             loadThumbnails()
         } else {
@@ -194,6 +272,24 @@ class ZapAppDelegate: NSObject, NSApplicationDelegate {
         hidePanel()
         switcherState.windows = []
         switcherState.selectedIndex = 0
+    }
+}
+
+// MARK: - Helpers
+
+func activateApp() {
+    if #available(macOS 14.0, *) {
+        NSApp.activate()
+    } else {
+        NSApp.activate(ignoringOtherApps: true)
+    }
+}
+
+func activateRunningApp(_ app: NSRunningApplication) {
+    if #available(macOS 14.0, *) {
+        app.activate()
+    } else {
+        app.activate(options: .activateIgnoringOtherApps)
     }
 }
 

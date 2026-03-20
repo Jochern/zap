@@ -3,6 +3,7 @@ import SwiftUI
 class SwitcherState: ObservableObject {
     @Published var windows: [ZapWindow] = []
     @Published var selectedIndex: Int = 0
+    @Published var hoverEnabled: Bool = false
 }
 
 struct WindowItemView: View {
@@ -76,7 +77,8 @@ struct SwitcherView: View {
     private var itemWidth: CGFloat { 172 * settings.thumbnailScale }
 
     private var columns: [GridItem] {
-        let count = max(1, Int((maxWidth - 24) / (itemWidth + spacing)))
+        let maxCount = max(1, Int((maxWidth - 24) / (itemWidth + spacing)))
+        let count = min(maxCount, max(1, state.windows.count))
         return Array(repeating: GridItem(.fixed(itemWidth), spacing: spacing), count: count)
     }
 
@@ -84,6 +86,15 @@ struct SwitcherView: View {
         LazyVGrid(columns: columns, spacing: spacing) {
             ForEach(Array(state.windows.enumerated()), id: \.offset) { index, window in
                 WindowItemView(window: window, isSelected: index == state.selectedIndex, scale: settings.thumbnailScale)
+                    .onHover { hovering in
+                        if hovering {
+                            if state.hoverEnabled {
+                                state.selectedIndex = index
+                            } else {
+                                state.hoverEnabled = true
+                            }
+                        }
+                    }
             }
         }
         .padding(12)

@@ -59,6 +59,20 @@ class ZapSettings: ObservableObject {
         }
     }
 
+    /// Command+Tab and Command+Backtick conflict with built-in macOS shortcuts.
+    var hasSystemConflict: Bool {
+        modifier == .command && (triggerKey == .tab || triggerKey == .backtick)
+    }
+
+    var conflictDescription: String? {
+        guard hasSystemConflict else { return nil }
+        if triggerKey == .tab {
+            return "⌘ Command+Tab conflicts with the macOS app switcher."
+        } else {
+            return "⌘ Command+` conflicts with macOS window cycling."
+        }
+    }
+
     private init() {
         let scale = UserDefaults.standard.double(forKey: "thumbnailScale")
         self.thumbnailScale = scale > 0 ? scale : 1.0

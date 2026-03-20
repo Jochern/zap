@@ -16,6 +16,11 @@ struct SettingsView: View {
                         Text(key.label).tag(key)
                     }
                 }
+                if let conflict = settings.conflictDescription {
+                    Label(conflict, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.callout)
+                }
             }
 
             Section("Appearance") {
